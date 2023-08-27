@@ -14,8 +14,6 @@ export const HomeContainer = styled.main`
     align-items: center;
     gap: 3.5rem;
   }
-
-  ${(props) => props.theme['green-500']}
 `
 export const FormContainer = styled.div`
   width: 100%;
