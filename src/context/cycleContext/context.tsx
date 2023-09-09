@@ -1,27 +1,57 @@
-import { ReactNode, createContext, useContext, useState } from 'react'
+import {
+  ReactNode,
+  createContext,
+  useContext,
+  useEffect,
+  useReducer,
+  useState,
+} from 'react'
 import { Cycle, CycleContextInterface, createCycleData } from './types'
+import { cyclesReducer } from '../../reducers/reducer'
+import { FinishedCycle, StopCycle, addNewCycle } from '../../reducers/actions'
+import { differenceInSeconds } from 'date-fns'
 
 const CycleContext = createContext({} as CycleContextInterface)
 
 export const useCycleContext = () => useContext(CycleContext)
 
 export const CycleContextProvider = ({ children }: { children: ReactNode }) => {
-  const [cycles, setCycles] = useState<Cycle[]>([])
-  const [activeCycleID, setActiveCycleId] = useState<string | null>(null)
-  const [amountSeconds, setAmountSeconds] = useState<number>(0)
+  const [cycleState, dispatch] = useReducer(
+    cyclesReducer,
+    {
+      cycles: [],
+      activeCycleID: null,
+    },
+    (initialState) => {
+      const storedStateAsJSON = localStorage.getItem(
+        '@pomodoro:cycleState-1.0.0',
+      )
+
+      if (storedStateAsJSON) {
+        return JSON.parse(storedStateAsJSON)
+      }
+
+      return initialState
+    },
+  )
+  const { cycles, activeCycleID } = cycleState
   const activeCycle = cycles.find((cycle) => cycle.id === activeCycleID)
 
+  const [amountSeconds, setAmountSeconds] = useState(() => {
+    if (activeCycle) {
+      return differenceInSeconds(new Date(), new Date(activeCycle.startDate))
+    }
+    return 0
+  })
+
+  useEffect(() => {
+    const stateJSON = JSON.stringify(cycleState)
+    localStorage.setItem('@pomodoro:cycleState-1.0.0', stateJSON)
+  }, [cycleState])
+
   const markCurrentCycleAsFineshed = () => {
-    setCycles((state) => {
-      return state.map((cycle) => {
-        if (cycle.id === activeCycleID) {
-          return { ...cycle, finishedDate: new Date() }
-        }
-        return cycle
-      })
-    })
+    dispatch(FinishedCycle())
     document.title = 'Pomodoro'
-    setActiveCycleId(null)
   }
 
   const setSecondsPassed = (seconds: number) => setAmountSeconds(seconds)
@@ -35,23 +65,12 @@ export const CycleContextProvider = ({ children }: { children: ReactNode }) => {
       startDate: new Date(),
     }
 
-    setCycles((oldValues) => [...oldValues, newCycle])
-    setActiveCycleId(id)
+    dispatch(addNewCycle(newCycle))
     setAmountSeconds(0)
-    console.log(data)
-    // reset()
   }
 
   const stopCountDown = () => {
-    setCycles((state) => {
-      return state.map((cycle) => {
-        if (cycle.id === activeCycleID) {
-          return { ...cycle, stopDate: new Date() }
-        }
-        return cycle
-      })
-    })
-    setActiveCycleId(null)
+    dispatch(StopCycle())
   }
 
   return (
