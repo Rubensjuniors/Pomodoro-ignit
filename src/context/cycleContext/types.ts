@@ -22,3 +22,9 @@ export interface CycleContextInterface {
   createNewCycle: (data: createCycleData) => void
   stopCountDown: () => void
 }
+
+export enum ACTION_TYPES {
+  ADD_NEW_CYCLE = 'ADD_NEW_CYCLE',
+  FINISHED_CYCLE = 'FINISHED_CYCLE',
+  STOP_CYCLE = 'STOP_CYCLE',
+}
